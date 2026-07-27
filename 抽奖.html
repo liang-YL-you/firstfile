@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎯 班级点名幸运大转盘</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(145deg, #f7f0fc 0%, #e8def8 100%);
+            font-family: 'Poppins', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 56px;
+            padding: 40px 44px 48px;
+            max-width: 720px;
+            width: 100%;
+            box-shadow: 0 30px 60px rgba(108, 92, 231, 0.20),
+                0 10px 30px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        /* ===== 标题 ===== */
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .header h1 {
+            font-size: 30px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6C5CE7, #A29BFE, #00CEC9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 1px;
+        }
+
+        .header .badge {
+            background: linear-gradient(135deg, #FF6B6B, #FF9F43);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 16px;
+            border-radius: 40px;
+            -webkit-text-fill-color: #fff;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.35);
+        }
+
+        /* ===== 转盘区域 ===== */
+        .wheel-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 460px;
+            margin: 0 auto 24px;
+            aspect-ratio: 1 / 1;
+            touch-action: none;
+        }
+
+        #wheelCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 16px 48px rgba(108, 92, 231, 0.25),
+                0 4px 16px rgba(0, 0, 0, 0.08),
+                inset 0 2px 0 rgba(255, 255, 255, 0.6);
+            background: #fff;
+            transition: box-shadow 0.4s ease;
+            cursor: pointer;
+        }
+
+        #wheelCanvas:active {
+            box-shadow: 0 8px 24px rgba(108, 92, 231, 0.35);
+        }
+
+        /* ===== 指针 ===== */
+        .pointer {
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            width: 0;
+            height: 0;
+            border-left: 22px solid transparent;
+            border-right: 22px solid transparent;
+            border-top: 40px solid #FF6B6B;
+            filter: drop-shadow(0 6px 14px rgba(255, 107, 107, 0.55));
+            transition: filter 0.3s ease;
+        }
+
+        .pointer::after {
+            content: '';
+            position: absolute;
+            top: -44px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle, #FF6B6B, #e74c3c);
+            border-radius: 50%;
+            box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.25);
+        }
+
+        .pointer.spinning {
+            filter: drop-shadow(0 6px 24px rgba(255, 107, 107, 0.85));
+            animation: pulse-pointer 0.6s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-pointer {
+            0% {
+                transform: translateX(-50%) scale(1);
+            }
+            100% {
+                transform: translateX(-50%) scale(1.08);
+            }
+        }
+
+        /* ===== 中心徽标 ===== */
+        .center-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            width: 18%;
+            aspect-ratio: 1 / 1;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(4px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(26px, 5vw, 44px);
+            font-weight: 700;
+            color: #6C5CE7;
+            box-shadow: 0 4px 20px rgba(108, 92, 231, 0.20),
+                inset 0 0 0 2px rgba(255, 255, 255, 0.8);
+            user-select: none;
+            pointer-events: none;
+            transition: transform 0.3s ease;
+            letter-spacing: 1px;
+        }
+
+        .center-logo span {
+            background: linear-gradient(135deg, #6C5CE7, #00CEC9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: clamp(18px, 3.2vw, 30px);
+        }
+
+        /* ===== 输入区域 ===== */
+        .input-section {
+            margin-top: 8px;
+            margin-bottom: 16px;
+        }
+
+        .input-section .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .input-section .label-row label {
+            font-size: 15px;
+            font-weight: 600;
+            color: #2d3436;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-section .label-row label .icon {
+            font-size: 18px;
+        }
+
+        .input-section .label-row .count-badge {
+            font-size: 13px;
+            font-weight: 500;
+            color: #6C5CE7;
+            background: rgba(108, 92, 231, 0.12);
+            padding: 2px 14px;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+        }
+
+        .input-section textarea {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid rgba(108, 92, 231, 0.20);
+            border-radius: 20px;
+            font-size: 15px;
+            font-family: inherit;
+            color: #2d3436;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(4px);
+            resize: vertical;
+            min-height: 56px;
+            max-height: 140px;
+            transition: all 0.3s ease;
+            outline: none;
+            line-height: 1.6;
+        }
+
+        .input-section textarea:focus {
+            border-color: #6C5CE7;
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.12);
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .input-section textarea::placeholder {
+            color: #b2bec3;
+            font-weight: 400;
+        }
+
+        /* ===== 按钮 ===== */
+        .btn-section {
+            display: flex;
+            gap: 14px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-section .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 60px;
+            font-size: 20px;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            letter-spacing: 0.5px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-section .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-section .btn-primary {
+            background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+            color: #fff;
+            box-shadow: 0 8px 28px rgba(108, 92, 231, 0.35);
+        }
+
+        .btn-section .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 14px 36px rgba(108, 92, 231, 0.45);
+        }
+
+        .btn-section .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-section .btn-danger {
+            background: linear-gradient(135deg, #FF6B6B, #ee5a24);
+            color: #fff;
+            box-shadow: 0 8px 28px rgba(255, 107, 107, 0.35);
+            animation: glow-stop 1.2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow-stop {
+            0% {
+                box-shadow: 0 8px 28px rgba(255, 107, 107, 0.35);
+            }
+            100% {
+                box-shadow: 0 8px 40px rgba(255, 107, 107, 0.65);
+            }
+        }
+
+        .btn-section .btn-danger:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 14px 40px rgba(255, 107, 107, 0.55);
+        }
+
+        .btn-section .btn-danger:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            animation: none;
+        }
+
+        .btn-section .btn-secondary {
+            background: rgba(108, 92, 231, 0.08);
+            color: #6C5CE7;
+            border: 2px solid rgba(108, 92, 231, 0.15);
+        }
+
+        .btn-section .btn-secondary:hover {
+            background: rgba(108, 92, 231, 0.16);
+            transform: translateY(-2px);
+        }
+
+        /* ===== 预览 ===== */
+        .preview-section {
+            margin-top: 14px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(108, 92, 231, 0.06);
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+        }
+
+        .preview-section .preview-label {
+            font-size: 13px;
+            color: #636e72;
+            font-weight: 500;
+            margin-right: 4px;
+        }
+
+        .preview-section .preview-name {
+            font-size: 14px;
+            color: #2d3436;
+            background: rgba(108, 92, 231, 0.08);
+            padding: 2px 12px;
+            border-radius: 30px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .preview-section .preview-name.highlight {
+            background: #6C5CE7;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+            transform: scale(1.05);
+        }
+
+        .preview-section .preview-more {
+            font-size: 13px;
+            color: #b2bec3;
+            font-weight: 500;
+        }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            animation: fade-in 0.4s ease;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fade-in {
+            0% {
+                opacity: 0;
+                transform: scale(0.92);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 48px;
+            padding: 48px 40px 40px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.30);
+            animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .modal-box::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(108, 92, 231, 0.06), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .modal-box::after {
+            content: '';
+            position: absolute;
+            bottom: -40px;
+            left: -40px;
+            width: 140px;
+            height: 140px;
+            background: radial-gradient(circle, rgba(0, 206, 201, 0.06), transparent 70%);
+            border-radius: 50%;
+        }
+
+        @keyframes pop-in {
+            0% {
+                opacity: 0;
+                transform: scale(0.7) rotate(-8deg);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0);
+            }
+        }
+
+        .modal-box .modal-emoji {
+            font-size: 64px;
+            display: block;
+            margin-bottom: 4px;
+            animation: bounce-emoji 0.8s ease-in-out infinite alternate;
+        }
+
+        @keyframes bounce-emoji {
+            0% {
+                transform: scale(1) rotate(-4deg);
+            }
+            100% {
+                transform: scale(1.1) rotate(4deg);
+            }
+        }
+
+        .modal-box .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 6px;
+        }
+
+        .modal-box .modal-name {
+            font-size: 44px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6C5CE7, #00CEC9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 8px 0 16px;
+            padding: 8px 0;
+            letter-spacing: 2px;
+        }
+
+        .modal-box .modal-sub {
+            font-size: 15px;
+            color: #636e72;
+            margin-bottom: 24px;
+        }
+
+        .modal-box .modal-btn {
+            background: linear-gradient(135deg, #6C5CE7, #A29BFE);
+            border: none;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: inherit;
+            padding: 14px 48px;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 28px rgba(108, 92, 231, 0.30);
+            position: relative;
+            z-index: 2;
+        }
+
+        .modal-box .modal-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 14px 36px rgba(108, 92, 231, 0.45);
+        }
+
+        .modal-box .modal-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== 五彩纸屑容器 ===== */
+        .confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            overflow: hidden;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            opacity: 0.9;
+            animation: confetti-fall linear forwards;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-20px) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(110vh) rotate(720deg) scale(0.4);
+                opacity: 0;
+            }
+        }
+
+        /* ===== 响应式 ===== */
+        @media (max-width: 560px) {
+            .container {
+                padding: 24px 18px 32px;
+                border-radius: 32px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+            .header .badge {
+                font-size: 11px;
+                padding: 2px 12px;
+            }
+
+            .wheel-wrapper {
+                max-width: 340px;
+                margin-bottom: 18px;
+            }
+
+            .pointer {
+                border-left-width: 16px;
+                border-right-width: 16px;
+                border-top-width: 30px;
+                top: -4px;
+            }
+            .pointer::after {
+                width: 14px;
+                height: 14px;
+                top: -34px;
+            }
+
+            .center-logo {
+                width: 20%;
+            }
+            .center-logo span {
+                font-size: clamp(14px, 3.2vw, 22px);
+            }
+
+            .input-section textarea {
+                font-size: 14px;
+                padding: 12px 14px;
+                min-height: 48px;
+            }
+
+            .btn-section .btn {
+                font-size: 17px;
+                padding: 14px 18px;
+                min-width: 100px;
+            }
+
+            .modal-box {
+                padding: 32px 24px 28px;
+                border-radius: 32px;
+            }
+            .modal-box .modal-name {
+                font-size: 34px;
+            }
+            .modal-box .modal-emoji {
+                font-size: 48px;
+            }
+            .modal-box .modal-btn {
+                font-size: 16px;
+                padding: 12px 32px;
+            }
+
+            .preview-section {
+                padding: 8px 12px;
+                min-height: 30px;
+            }
+            .preview-section .preview-name {
+                font-size: 12px;
+                padding: 1px 10px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .container {
+                padding: 16px 12px 24px;
+                border-radius: 24px;
+            }
+            .header h1 {
+                font-size: 18px;
+            }
+            .wheel-wrapper {
+                max-width: 280px;
+            }
+            .btn-section .btn {
+                font-size: 15px;
+                padding: 12px 14px;
+                min-width: 80px;
+            }
+            .modal-box .modal-name {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" role="main">
+        <!-- 标题 -->
+        <div class="header">
+            <h1>🎯 幸运大转盘</h1>
+            <span class="badge">✨ 班级点名</span>
+        </div>
+
+        <!-- 转盘 -->
+        <div class="wheel-wrapper">
+            <canvas id="wheelCanvas" width="800" height="800"></canvas>
+            <div class="pointer" id="pointer"></div>
+            <div class="center-logo"><span>抽</span></div>
+        </div>
+
+        <!-- 输入 -->
+        <div class="input-section">
+            <div class="label-row">
+                <label>
+                    <span class="icon">📝</span> 名单
+                </label>
+                <span class="count-badge" id="countBadge">共 0 人</span>
+            </div>
+            <textarea id="nameInput" placeholder="粘贴名字，用逗号分隔&#10;例如：张三, 李四, 王五, 赵六" spellcheck="false">张子轩, 李雨桐, 王浩然, 刘梦瑶, 陈子涵, 赵欣怡, 孙逸飞, 周若曦, 吴宇航, 郑乐瑶, 林俊豪, 唐诗雅</textarea>
+        </div>
+
+        <!-- 按钮 -->
+        <div class="btn-section">
+            <button class="btn btn-primary" id="btnStart">🎰 开始点名</button>
+            <button class="btn btn-secondary" id="btnReset">🔄 重置</button>
+        </div>
+
+        <!-- 预览 -->
+        <div class="preview-section" id="previewSection">
+            <span class="preview-label">👥 当前名单：</span>
+            <span id="previewNames">—</span>
+        </div>
+    </div>
+
+    <!-- ===== 模态框 ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <span class="modal-emoji">🎉</span>
+            <div class="modal-title">🎊 恭喜被点中！</div>
+            <div class="modal-name" id="modalName">——</div>
+            <div class="modal-sub">👏 掌声送给这位幸运的同学</div>
+            <button class="modal-btn" id="modalBtn">👍 太棒了！</button>
+        </div>
+    </div>
+
+    <!-- ===== 五彩纸屑容器 ===== -->
+    <div class="confetti-container" id="confettiContainer"></div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            // ============================================================
+            //  1. DOM 引用
+            // ============================================================
+            const canvas = document.getElementById('wheelCanvas');
+            const ctx = canvas.getContext('2d');
+            const nameInput = document.getElementById('nameInput');
+            const btnStart = document.getElementById('btnStart');
+            const btnReset = document.getElementById('btnReset');
+            const countBadge = document.getElementById('countBadge');
+            const previewNames = document.getElementById('previewNames');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalName = document.getElementById('modalName');
+            const modalBtn = document.getElementById('modalBtn');
+            const pointerEl = document.getElementById('pointer');
+            const confettiContainer = document.getElementById('confettiContainer');
+
+            // ============================================================
+            //  2. 状态
+            // ============================================================
+            let names = [];
+            let colors = [];
+            let rotation = 0; // 当前旋转弧度
+            let speed = 0; // 当前角速度 (弧度/帧)
+            let isSpinning = false;
+            let isStopping = false;
+            let isStopped = false;
+            let animationId = null;
+            let selectedIndex = -1;
+
+            // 减速参数
+            const DECELERATION = 0.982;
+            const MIN_SPEED = 0.002;
+            const MAX_SPEED = 0.28;
+
+            // 预置鲜艳颜色 (年轻活力)
+            const COLOR_PALETTE = [
+                '#FF6B6B', '#FF9F43', '#FECA57', '#48DBFB',
+                '#0ABDE3', '#10AC84', '#EE5A24', '#5F27CD',
+                '#A29BFE', '#FD79A8', '#00CEC9', '#FDCB6E',
+                '#E17055', '#00B894', '#6C5CE7', '#FD79A8',
+                '#00D2D3', '#F368E0', '#FF9FF3', '#54A0FF',
+                '#5F27CD', '#FF6348', '#7BED9F', '#70A1FF',
+                '#FF4757', '#2ED573', '#1E90FF', '#FF6B81'
+            ];
+
+            // ============================================================
+            //  3. 核心函数
+            // ============================================================
+
+            // 解析名字
+            function parseNames(text) {
+                return text.split(/[,，、\s]+/)
+                    .map(s => s.trim())
+                    .filter(s => s.length > 0);
+            }
+
+            // 分配颜色
+            function assignColors(count) {
+                const result = [];
+                for (let i = 0; i < count; i++) {
+                    result.push(COLOR_PALETTE[i % COLOR_PALETTE.length]);
+                }
+                return result;
+            }
+
+            // 绘制转盘
+            function drawWheel() {
+                const w = canvas.width;
+                const h = canvas.height;
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const radius = Math.min(w, h) / 2 - 12;
+
+                ctx.clearRect(0, 0, w, h);
+
+                if (names.length === 0) {
+                    // 空状态
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = '#f1f2f6';
+                    ctx.fill();
+                    ctx.strokeStyle = '#dfe4ea';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#b2bec3';
+                    ctx.font = 'bold 28px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('📋 请添加名单', centerX, centerY);
+                    return;
+                }
+
+                const sliceAngle = (Math.PI * 2) / names.length;
+
+                for (let i = 0; i < names.length; i++) {
+                    const start = i * sliceAngle + rotation;
+                    const end = start + sliceAngle;
+
+                    // 扇形
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, radius, start, end);
+                    ctx.closePath();
+
+                    ctx.fillStyle = colors[i % colors.length];
+                    ctx.fill();
+
+                    // 边框分割线
+                    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+
+                    // 文字
+                    const midAngle = start + sliceAngle / 2;
+                    const textRadius = radius * 0.68;
+                    const x = centerX + Math.cos(midAngle) * textRadius;
+                    const y = centerY + Math.sin(midAngle) * textRadius;
+
+                    const name = names[i];
+                    // 根据名字数量动态调整字号
+                    let fontSize;
+                    if (names.length <= 6) fontSize = 28;
+                    else if (names.length <= 10) fontSize = 22;
+                    else if (names.length <= 18) fontSize = 17;
+                    else if (names.length <= 28) fontSize = 13;
+                    else fontSize = 10;
+
+                    // 如果名字太长，截断
+                    let displayName = name;
+                    const maxLen = names.length <= 10 ? 6 : 4;
+                    if (displayName.length > maxLen) {
+                        displayName = displayName.slice(0, maxLen) + '…';
+                    }
+
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(midAngle + Math.PI / 2);
+
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+                    ctx.shadowBlur = 6;
+                    ctx.font = `bold ${fontSize}px "PingFang SC", "Microsoft YaHei", sans-serif`;
+                    ctx.fillText(displayName, 0, 0);
+
+                    // 加一点描边让文字更清晰
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+                    ctx.lineWidth = 1;
+                    ctx.strokeText(displayName, 0, 0);
+
+                    ctx.restore();
+                }
+
+                // 外圈装饰
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // 内圈小装饰点
+                for (let i = 0; i < names.length; i++) {
+                    const angle = i * sliceAngle + rotation + sliceAngle / 2;
+                    const dotR = radius * 0.92;
+                    const dx = centerX + Math.cos(angle) * dotR;
+                    const dy = centerY + Math.sin(angle) * dotR;
+                    ctx.beginPath();
+                    ctx.arc(dx, dy, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fill();
+                }
+            }
+
+            // 计算当前指针指向的索引
+            function getSelectedIndex() {
+                if (names.length === 0) return -1;
+                const sliceAngle = (Math.PI * 2) / names.length;
+                // 指针方向：正上方 (-PI/2)
+                const pointerDir = -Math.PI / 2;
+                // 指针在转盘坐标系中的角度
+                let raw = (pointerDir - rotation) % (Math.PI * 2);
+                while (raw < 0) raw += Math.PI * 2;
+                const idx = Math.floor(raw / sliceAngle);
+                return idx % names.length;
+            }
+
+            // 更新 UI 信息
+            function updateUI() {
+                const count = names.length;
+                countBadge.textContent = `共 ${count} 人`;
+
+                if (count === 0) {
+                    previewNames.textContent = '— 请添加名单';
+                    previewNames.style.color = '#b2bec3';
+                    return;
+                }
+                previewNames.style.color = '#2d3436';
+                const showCount = Math.min(count, 12);
+                const parts = names.slice(0, showCount);
+                let html = parts.map((n, idx) => {
+                    const isHighlight = (idx === selectedIndex && isStopped);
+                    return `<span class="preview-name${isHighlight ? ' highlight' : ''}">${n}</span>`;
+                }).join('');
+                if (count > showCount) {
+                    html += `<span class="preview-more"> +${count - showCount} 人</span>`;
+                }
+                previewNames.innerHTML = html;
+            }
+
+            // ============================================================
+            //  4. 动画循环
+            // ============================================================
+
+            function animate() {
+                if (!isSpinning && !isStopping) {
+                    drawWheel();
+                    updateUI();
+                    return;
+                }
+
+                if (isStopping) {
+                    speed *= DECELERATION;
+                    if (speed < MIN_SPEED) {
+                        speed = 0;
+                        isStopping = false;
+                        isSpinning = false;
+                        isStopped = true;
+                        // 确定选中
+                        selectedIndex = getSelectedIndex();
+                        updateUI();
+                        drawWheel();
+                        // 恢复按钮
+                        btnStart.textContent = '🎰 开始点名';
+                        btnStart.disabled = false;
+                        btnStart.className = 'btn btn-primary';
+                        pointerEl.classList.remove('spinning');
+                        // 弹出恭喜
+                        if (selectedIndex >= 0 && names.length > 0) {
+                            showResult(names[selectedIndex]);
+                        }
+                        return;
+                    }
+                }
+
+                rotation += speed;
+                drawWheel();
+                updateUI();
+
+                animationId = requestAnimationFrame(animate);
+            }
+
+            // ============================================================
+            //  5. 开始 / 停止
+            // ============================================================
+
+            function startSpin() {
+                if (names.length < 2) {
+                    alert('👀 至少需要 2 个名字才能点名哦！');
+                    return;
+                }
+
+                if (isSpinning || isStopping) return;
+
+                // 重置选中状态
+                selectedIndex = -1;
+                isStopped = false;
+
+                // 随机初始速度
+                speed = MAX_SPEED * (0.75 + Math.random() * 0.25);
+                isSpinning = true;
+                isStopping = false;
+
+                btnStart.textContent = '⏹ 停止';
+                btnStart.className = 'btn btn-danger';
+                btnStart.disabled = false;
+                pointerEl.classList.add('spinning');
+
+                // 隐藏之前的模态框
+                modalOverlay.classList.remove('active');
+
+                if (animationId) cancelAnimationFrame(animationId);
+                animate();
+            }
+
+            function stopSpin() {
+                if (!isSpinning || isStopping) return;
+                if (names.length < 2) return;
+
+                isStopping = true;
+                isSpinning = false;
+                btnStart.textContent = '⏳ 减速中…';
+                btnStart.disabled = true;
+                btnStart.className = 'btn btn-primary';
+            }
+
+            // ============================================================
+            //  6. 结果展示
+            // ============================================================
+
+            function showResult(name) {
+                modalName.textContent = name;
+                modalOverlay.classList.add('active');
+                launchConfetti();
+            }
+
+            // ============================================================
+            //  7. 五彩纸屑 🎊
+            // ============================================================
+
+            function launchConfetti() {
+                const container = confettiContainer;
+                container.innerHTML = '';
+                const colors = ['#FF6B6B', '#FF9F43', '#FECA57', '#48DBFB', '#A29BFE', '#FD79A8', '#00CEC9', '#F368E0', '#6C5CE7',
+                    '#00B894'
+                ];
+                const count = 80 + Math.floor(Math.random() * 60);
+
+                for (let i = 0; i < count; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'confetti';
+                    const size = 6 + Math.random() * 10;
+                    const isCircle = Math.random() > 0.5;
+                    el.style.width = isCircle ? size + 'px' : size * 0.6 + 'px';
+                    el.style.height = isCircle ? size + 'px' : size * 1.8 + 'px';
+                    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    el.style.borderRadius = isCircle ? '50%' : '2px';
+                    el.style.left = Math.random() * 100 + '%';
+                    el.style.top = '-10px';
+                    el.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    const duration = 2.2 + Math.random() * 2.5;
+                    const delay = Math.random() * 1.2;
+                    el.style.animationDuration = duration + 's';
+                    el.style.animationDelay = delay + 's';
+                    container.appendChild(el);
+                }
+
+                // 自动清除
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+
+            // ============================================================
+            //  8. 重置
+            // ============================================================
+
+            function resetWheel() {
+                if (isSpinning || isStopping) return;
+
+                // 停止动画
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+
+                isSpinning = false;
+                isStopping = false;
+                isStopped = false;
+                selectedIndex = -1;
+                speed = 0;
+                rotation = 0;
+
+                btnStart.textContent = '🎰 开始点名';
+                btnStart.className = 'btn btn-primary';
+                btnStart.disabled = false;
+                pointerEl.classList.remove('spinning');
+
+                modalOverlay.classList.remove('active');
+                confettiContainer.innerHTML = '';
+
+                drawWheel();
+                updateUI();
+            }
+
+            // ============================================================
+            //  9. 名单更新
+            // ============================================================
+
+            function updateNames() {
+                if (isSpinning || isStopping) return;
+
+                const raw = nameInput.value;
+                const parsed = parseNames(raw);
+                names = parsed;
+                colors = assignColors(names.length);
+
+                // 重置状态
+                selectedIndex = -1;
+                isStopped = false;
+                rotation = 0;
+                speed = 0;
+
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+
+                btnStart.textContent = '🎰 开始点名';
+                btnStart.className = 'btn btn-primary';
+                btnStart.disabled = false;
+                pointerEl.classList.remove('spinning');
+                modalOverlay.classList.remove('active');
+                confettiContainer.innerHTML = '';
+
+                drawWheel();
+                updateUI();
+            }
+
+            // ============================================================
+            //  10. 事件绑定
+            // ============================================================
+
+            // 开始 / 停止
+            btnStart.addEventListener('click', function() {
+                if (isSpinning) {
+                    stopSpin();
+                } else {
+                    startSpin();
+                }
+            });
+
+            // 重置
+            btnReset.addEventListener('click', resetWheel);
+
+            // 输入框变化
+            nameInput.addEventListener('input', function() {
+                updateNames();
+            });
+
+            // 模态框关闭
+            modalBtn.addEventListener('click', function() {
+                modalOverlay.classList.remove('active');
+                confettiContainer.innerHTML = '';
+            });
+
+            modalOverlay.addEventListener('click', function(e) {
+                if (e.target === modalOverlay) {
+                    modalOverlay.classList.remove('active');
+                    confettiContainer.innerHTML = '';
+                }
+            });
+
+            // 键盘快捷键：空格 开始/停止
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'TEXTAREA') return;
+                if (e.key === ' ' || e.key === 'Space') {
+                    e.preventDefault();
+                    if (modalOverlay.classList.contains('active')) {
+                        modalOverlay.classList.remove('active');
+                        confettiContainer.innerHTML = '';
+                        return;
+                    }
+                    btnStart.click();
+                }
+                if (e.key === 'r' || e.key === 'R') {
+                    if (e.target.tagName === 'TEXTAREA') return;
+                    btnReset.click();
+                }
+            });
+
+            // 窗口尺寸变化重绘
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(() => {
+                    if (!isSpinning && !isStopping) {
+                        drawWheel();
+                    }
+                }, 200);
+            });
+
+            // ============================================================
+            //  11. 初始化
+            // ============================================================
+
+            // 设置默认值
+            const defaultNames = ['张子轩', '李雨桐', '王浩然', '刘梦瑶', '陈子涵', '赵欣怡', '孙逸飞', '周若曦', '吴宇航', '郑乐瑶', '林俊豪',
+                '唐诗雅'
+            ];
+            nameInput.value = defaultNames.join(', ');
+            updateNames();
+
+            // 额外：点击转盘也可以触发开始/停止（方便移动端）
+            canvas.addEventListener('click', function() {
+                if (modalOverlay.classList.contains('active')) {
+                    modalOverlay.classList.remove('active');
+                    confettiContainer.innerHTML = '';
+                    return;
+                }
+                btnStart.click();
+            });
+
+            // 触摸优化
+            canvas.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                if (modalOverlay.classList.contains('active')) {
+                    modalOverlay.classList.remove('active');
+                    confettiContainer.innerHTML = '';
+                    return;
+                }
+                btnStart.click();
+            }, { passive: false });
+
+            console.log('🎯 幸运大转盘已加载！');
+            console.log('💡 按 [空格] 开始/停止，按 [R] 重置');
+
+        })();
+    </script>
+
+</body>
+</html>
